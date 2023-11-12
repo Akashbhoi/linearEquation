@@ -1,0 +1,311 @@
+<!-- equations/templates/equations/home.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Equation Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+        }
+
+        div {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #equationGraph {
+            width: 100%;
+            max-width: 1000px; /* Set a maximum width if needed */
+            height: 75vh; /* Set the height to 75% of the viewport height */
+            margin-top: 20px; /* Adjust the margin as needed */
+        }
+
+        #solution {
+            width: 100%;
+            max-width: 400px; /* Set the maximum width of the solution div */
+            margin: 10px auto; /* Center the solution div */
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Linear Equation Visualizer</h1>
+    </header>
+
+    <div>
+        <p>Enter the equations in the form of ax+by=c</p>
+{#        <p>Equation 1: {{ equation1 }}</p>#}
+{#        <p>Equation 2: {{ equation2 }}</p>#}
+        <form method="post" action="{% url 'home' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    {% if equation1 and equation2 %}
+        <h2>Results:</h2>
+{#        <p>Modified Equation 1: <span id="modifiedEquation1"></span></p>#}
+{#        <p>Modified Equation 2: <span id="modifiedEquation2"></span></p>#}
+        <div id="solution"></div>
+        <div id="equationGraph"></div>
+        <script>
+            // Manually input equations
+            var equation1 = '{{ equation1 }}';
+            var equation2 = '{{ equation2 }}';
+
+            // Function to convert equation to ax + by = c format
+            var convertToStandardForm = function (equation) {
+                // Normalize signs at the beginning: Replace "++" with "+", "--" with "+", "+-" with "-", and "-+" with "-"
+                equation = equation.replace(/\s/g, '');
+                equation = equation.replace(/\+\+/g, '+').replace(/--/g, '+').replace(/\+-/g, '-').replace(/-\+/g, '-');
+
+                // Check if 'x' or 'y' is missing and handle accordingly
+                if (equation.indexOf('x') === -1) {
+                    if(equation.at(0) === 'y')
+                        equation = '0x+'+equation;
+                    else if(equation.at(0) === '+' || equation.at(0) === '-')
+                        equation = '0x'+equation;
+                    else
+                        equation = '0x+'+equation;
+                }
+                if (equation.indexOf('y') === -1) {
+                 // Append '0y' before '=' if '=' is present
+                  equation = equation.replace(/=/, '+0y=');
+                 }
+
+                // Handle cases where there is nothing before 'x' or 'y'
+                if(equation.at(0) === 'x')
+                    equation = '1' + equation;
+
+                equation = equation.replace('+y','+1y').replace('-y','-1y');
+                equation = equation.replace('+x','+1x').replace('-x','-1x');
+
+                // Your logic to further convert the equation to ax + by = c format
+                // For simplicity, let's assume the equation is already in the correct format
+                return equation;
+            };
+
+
+            // Convert equations to modified format
+            var modifiedEquation1 = convertToStandardForm(equation1);
+            var modifiedEquation2 = convertToStandardForm(equation2);
+
+            // Display modified equations on the page
+            {#document.getElementById('modifiedEquation1').innerText = modifiedEquation1;#}
+            {#document.getElementById('modifiedEquation2').innerText = modifiedEquation2;#}
+
+            // Extract coefficients for a, b, and c from the equations
+            var extractCoefficients = function (equation) {
+                var matches = equation.match(/([+-]?\s*\d+(\.\d+)?)?\s*\*?\s*x\s*([+-]\s*\d+(\.\d+)?)?\s*\*?\s*y\s*=\s*([+-]?\s*\d+(\.\d+)?)/);
+                if (!matches || matches.length < 6) {
+                    console.error('Invalid equation format');
+                    return null;
+                }
+
+                var a = matches[1] ? parseFloat(matches[1].replace(/\s/g, '')) : 0;  // Default to 0 if not specified
+                var b = matches[3] ? parseFloat(matches[3].replace(/\s/g, '')) : 0;  // Default to 0 if not specified
+                var c = parseFloat(matches[5]);
+
+                return { a: a, b: b, c: c };
+            };
+
+            var coefficients1 = extractCoefficients(modifiedEquation1);
+            var coefficients2 = extractCoefficients(modifiedEquation2);
+
+            // Calculate the solution point
+            var determinant = coefficients1.a * coefficients2.b - coefficients2.a * coefficients1.b;
+
+            if (determinant !== 0) {
+                var solutionX = (coefficients2.b * coefficients1.c - coefficients1.b * coefficients2.c) / determinant;
+                var solutionY = (coefficients1.a * coefficients2.c - coefficients2.a * coefficients1.c) / determinant;
+
+                // Create a trace for each line
+                var xValues = [...Array(200).keys()].map(i => (i - 100) / 10);  // Values from -10 to 10 with more granularity
+
+                var yValues1 = xValues.map(x => (coefficients1.c - coefficients1.a * x) / coefficients1.b);
+                var yValues2 = xValues.map(x => (coefficients2.c - coefficients2.a * x) / coefficients2.b);
+
+                // Create a trace for the solution point
+                var trace3 = {
+                    x: [solutionX],
+                    y: [solutionY],
+                    type: 'scatter',
+                    mode: 'markers',
+                    marker: {
+                        color: 'red',
+                        size: 10
+                    },
+                    name: 'Intersection Point',
+                    text: [`(${solutionX}, ${solutionY})`],
+                    hoverinfo: 'text+x+y'
+                };
+
+                // Create additional traces for lines around the solution point
+                var range = 10;  // Adjust the range as needed
+                var xValuesAround = [...Array(200).keys()].map(i => (i - 100) / 10 + solutionX);
+
+                var yValues1Around = xValuesAround.map(x => (coefficients1.c - coefficients1.a * x) / coefficients1.b);
+                var yValues2Around = xValuesAround.map(x => (coefficients2.c - coefficients2.a * x) / coefficients2.b);
+
+                var trace1Around = {
+                    x: xValuesAround,
+                    y: yValues1Around,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: 'rgba(75, 192, 192, 1)',
+                        dash: 'solid'  // Change 'dash' to 'solid'
+                    },
+                    showlegend: true,
+                    hoverinfo: 'text+x+y',
+                    name: `${coefficients1.a}x+${coefficients1.b}y=${coefficients1.c}`,
+                    text: Array(xValuesAround.length).fill(`${coefficients1.a}x + ${coefficients1.b}y = ${coefficients1.c}`)
+                };
+
+                var trace2Around = {
+                    x: xValuesAround,
+                    y: yValues2Around,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: 'rgba(192, 75, 192, 1)',
+                        dash: 'solid'  // Change 'dash' to 'solid'
+                    },
+                    showlegend: true,
+                    hoverinfo: 'text+x+y',
+                    name:`${coefficients2.a}x+${coefficients2.b}y=${coefficients2.c}`,
+                    text: Array(xValuesAround.length).fill(`${coefficients2.a}x + ${coefficients2.b}y = ${coefficients2.c}`),
+                };
+
+                // Set layout options
+                var layout = {
+                    xaxis: {
+                        title: 'X-axis',
+                        range: [solutionX - range, solutionX + range]
+                    },
+                    yaxis: {
+                        title: 'Y-axis'
+                    },
+                    showlegend: true
+                };
+
+                // Plot the graph
+
+                Plotly.newPlot('equationGraph', [trace1Around, trace2Around, trace3], layout);
+                console.log('Solution Point:', solutionX, solutionY);
+                var resultDiv = document.getElementById('solution');
+                resultDiv.innerHTML = `<p>Solution Point: (${solutionX}, ${solutionY})</p>`;
+            }
+            else{
+                    // Create traces for lines
+                var resultDiv = document.getElementById('solution');
+
+                {#coefficients1.a*coefficients2.b === coefficients1.b*coefficients2.a#}
+
+                if(coefficients1.a*coefficients2.b === coefficients1.b*coefficients2.a && coefficients1.a*coefficients2.c === coefficients1.c*coefficients2.a)
+                    resultDiv.innerHTML = '<p><span>Infinite Solution</span></p>';
+                else
+                    resultDiv.innerHTML = '<p><span>No solution</span></p>';
+
+                var xValues = [...Array(200).keys()].map(i => (i - 100) / 10);  // Values from -10 to 10 with more granularity
+                var yValues1 = xValues.map(x => (coefficients1.c - coefficients1.a * x) / coefficients1.b);
+                var yValues2 = xValues.map(x => (coefficients2.c - coefficients2.a * x) / coefficients2.b);
+                var trace1 = {
+                    x: xValues,
+                    y: yValues1,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: 'rgba(75, 192, 192, 1)',
+                        dash: 'solid'  // Change 'dash' to 'solid'
+                    },
+                    name: `${coefficients1.a}x+${coefficients1.b}y=${coefficients1.c}`,
+                    hoverinfo: 'text+x+y',
+                    text: Array(xValues.length).fill(`${coefficients1.a}x + ${coefficients1.b}y = ${coefficients1.c}`)
+                };
+
+                var trace2 = {
+                    x: xValues,
+                    y: yValues2,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: 'rgba(192, 75, 192, 1)',
+                        dash: 'solid'  // Change 'dash' to 'solid'
+                    },
+                    name: `${coefficients2.a}x+${coefficients2.b}y=${coefficients2.c}`,
+                    hoverinfo: 'text+x+y',
+                    text: Array(xValues.length).fill(`${coefficients2.a}x + ${coefficients2.b}y = ${coefficients2.c}`)
+                };
+
+                // Set layout options
+                var layout = {
+                    xaxis: {
+                        title: 'X-axis',
+                        range: [-10, 10]
+                    },
+                    yaxis: {
+                        title: 'Y-axis'
+                    },
+                    showlegend: true
+                };
+
+                // Plot the graph
+                Plotly.newPlot('equationGraph', [trace1, trace2], layout);
+            }
+        </script>
+    {% endif %}
+</body>
+</html>
