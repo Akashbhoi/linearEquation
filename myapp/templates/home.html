@@ -79,25 +79,28 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Linear Equation Visualizer</h1>
-    </header>
+<header style="text-align: center; font-size: 16px;">
+    <h3>Science Exhibition 2023-24</h3>
+    <p><strong>Topic:</strong> Linear Equation Visualizer</p>
+    <p><strong>Student:</strong> ALOK BEHERA | <strong>Class:</strong> X | <strong>School:</strong> TPHS Dahimal | <strong>Dist:</strong> Balangir</p>
+    <p><strong>Guide Teacher:</strong> Sudhir Kumar Padhan (TGT PCM)</p>
+</header>
 
-    <div>
-        <p>Enter the equations in the form of ax+by=c</p>
-{#        <p>Equation 1: {{ equation1 }}</p>#}
-{#        <p>Equation 2: {{ equation2 }}</p>#}
-        <form method="post" action="{% url 'home' %}">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Submit</button>
-        </form>
-    </div>
+
+
+
+
+<div id="equationInput" style="margin-top: 10px;">
+    <p>Enter the equations in the form of ax+by=c</p>
+    <form method="post" action="{% url 'home' %}">
+        {% csrf_token %}
+                {{ form.equation1.label_tag }} {{ form.equation1 }}
+                {{ form.equation2.label_tag }} {{ form.equation2 }}
+        <button type="submit">Submit</button>
+    </form>
+</div>
 
     {% if equation1 and equation2 %}
-        <h2>Results:</h2>
-{#        <p>Modified Equation 1: <span id="modifiedEquation1"></span></p>#}
-{#        <p>Modified Equation 2: <span id="modifiedEquation2"></span></p>#}
         <div id="solution"></div>
         <div id="equationGraph"></div>
         <script>
@@ -189,7 +192,7 @@
                     },
                     name: 'Intersection Point',
                     text: [`(${solutionX}, ${solutionY})`],
-                    hoverinfo: 'text+x+y'
+                    hoverinfo: 'text+x'
                 };
 
                 // Create additional traces for lines around the solution point
@@ -209,9 +212,9 @@
                         dash: 'solid'  // Change 'dash' to 'solid'
                     },
                     showlegend: true,
-                    hoverinfo: 'text+x+y',
+                    hoverinfo: 'text+x',
                     name: `${coefficients1.a}x+${coefficients1.b}y=${coefficients1.c}`,
-                    text: Array(xValuesAround.length).fill(`${coefficients1.a}x + ${coefficients1.b}y = ${coefficients1.c}`)
+                    text: xValuesAround.map((x, index) => `(${x}, ${yValues1Around[index]})`)
                 };
 
                 var trace2Around = {
@@ -224,9 +227,9 @@
                         dash: 'solid'  // Change 'dash' to 'solid'
                     },
                     showlegend: true,
-                    hoverinfo: 'text+x+y',
+                    hoverinfo: 'text+x',
                     name:`${coefficients2.a}x+${coefficients2.b}y=${coefficients2.c}`,
-                    text: Array(xValuesAround.length).fill(`${coefficients2.a}x + ${coefficients2.b}y = ${coefficients2.c}`),
+                    text: xValuesAround.map((x, index) => `(${x}, ${yValues2Around[index]})`)
                 };
 
                 // Set layout options
@@ -238,12 +241,26 @@
                     yaxis: {
                         title: 'Y-axis'
                     },
-                    showlegend: true
+                    showlegend: true,
                 };
 
                 // Plot the graph
 
-                Plotly.newPlot('equationGraph', [trace1Around, trace2Around, trace3], layout);
+                var config = {
+                            toImageButtonOptions: {
+                                format: 'png', // or 'svg'
+                                filename: 'plot',
+                                height: 500,
+                                width: 1000,
+                                scale: 1 // Multiply title/legend/axis/canvas sizes by this factor
+                            },
+                            displayModeBar: true, // Set to false to disable entire mode bar
+                            displaylogo:false,
+                            modeBarButtonsToRemove: ['autoScale2d', 'pan2d', 'select2d', 'lasso2d', 'resetScale2d', 'zoomIn2d','zoom2d', 'zoomOut2d', 'hoverClosestCartesian',
+                                 'hoverCompareCartesian', 'toggleHover'] // Remove unwanted mode bar buttons
+                };
+
+                Plotly.newPlot('equationGraph', [trace1Around, trace2Around, trace3], layout,config);
                 console.log('Solution Point:', solutionX, solutionY);
                 var resultDiv = document.getElementById('solution');
                 resultDiv.innerHTML = `<p>Solution Point: (${solutionX}, ${solutionY})</p>`;
@@ -272,8 +289,8 @@
                         dash: 'solid'  // Change 'dash' to 'solid'
                     },
                     name: `${coefficients1.a}x+${coefficients1.b}y=${coefficients1.c}`,
-                    hoverinfo: 'text+x+y',
-                    text: Array(xValues.length).fill(`${coefficients1.a}x + ${coefficients1.b}y = ${coefficients1.c}`)
+                    hoverinfo: 'text+x',
+                    text: xValues.map((x, index) => `(${x}, ${yValues1[index]})`)
                 };
 
                 var trace2 = {
@@ -286,8 +303,8 @@
                         dash: 'solid'  // Change 'dash' to 'solid'
                     },
                     name: `${coefficients2.a}x+${coefficients2.b}y=${coefficients2.c}`,
-                    hoverinfo: 'text+x+y',
-                    text: Array(xValues.length).fill(`${coefficients2.a}x + ${coefficients2.b}y = ${coefficients2.c}`)
+                    hoverinfo: 'text+x',
+                    text: xValues.map((x, index) => `(${x}, ${yValues1[index]})`)
                 };
 
                 // Set layout options
@@ -303,7 +320,20 @@
                 };
 
                 // Plot the graph
-                Plotly.newPlot('equationGraph', [trace1, trace2], layout);
+                       var config = {
+                            toImageButtonOptions: {
+                                format: 'png', // or 'svg'
+                                filename: 'plot',
+                                height: 500,
+                                width: 1000,
+                                scale: 1 // Multiply title/legend/axis/canvas sizes by this factor
+                            },
+                            displayModeBar: true, // Set to false to disable entire mode bar
+                            displaylogo:false,
+                            modeBarButtonsToRemove: ['autoScale2d', 'pan2d', 'select2d', 'lasso2d', 'resetScale2d', 'zoomIn2d','zoom2d', 'zoomOut2d', 'hoverClosestCartesian',
+                                 'hoverCompareCartesian', 'toggleHover'] // Remove unwanted mode bar buttons
+                };
+                Plotly.newPlot('equationGraph', [trace1, trace2], layout, config);
             }
         </script>
     {% endif %}
