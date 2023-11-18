@@ -271,7 +271,7 @@
 
                 {#coefficients1.a*coefficients2.b === coefficients1.b*coefficients2.a#}
 
-                if(coefficients1.a*coefficients2.b === coefficients1.b*coefficients2.a && coefficients1.a*coefficients2.c === coefficients1.c*coefficients2.a)
+                if(coefficients1.a*coefficients2.b === coefficients1.b*coefficients2.a && coefficients1.a*coefficients2.c === coefficients1.c*coefficients2.a && coefficients1.b*coefficients2.c === coefficients1.c*coefficients2.b)
                     resultDiv.innerHTML = '<p><span>Infinite Solution</span></p>';
                 else
                     resultDiv.innerHTML = '<p><span>No solution</span></p>';
